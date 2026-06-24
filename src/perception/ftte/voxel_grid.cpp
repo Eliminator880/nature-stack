@@ -723,6 +723,7 @@ void VoxelGrid::PlotTraversability() {
 	AddVehiclePathToImage(img);
 	int new_width = (int)(512.0f*(1.0f*img.width())/(1.0f*img.height()));
 	img.resize(new_width,512);*/
+	img.mirror("y");
 	if (trav_disp_.width() == 0 || trav_disp_.height() == 0) {
 		trav_disp_.assign(img, "Traversability");
 	}
@@ -1052,6 +1053,51 @@ bool VoxelGrid::LineBoxIntersect(glm::vec2 origin, glm::vec2 endpoint, glm::ivec
 	bool b3 = LineLineIntersect(origin, endpoint, p3, p0);
 	if (b3) return true;
 	return false;
+}
+
+nature::msg::OccupancyGrid VoxelGrid::GetTraversabilityAsOccupancyGridThreshold(bool row_major, float thresh) {
+	nature::msg::OccupancyGrid grid;
+	grid.data.resize(dim_.x * dim_.y, 0);
+	int n = 0;
+	if (row_major) {
+		for (int j = 0; j < dim_.y; j++) {
+			for (int i = 0; i < dim_.x; i++) {
+
+				float trav = vehicle_.GetTraversability(roughness_[i][j], slope_[i][j], impermeability_[i][j], rci_[i][j]);
+				if (trav < thresh) {
+					grid.data[n] = 100;
+				}
+				else { grid.data[n] = 0; }
+				//grid.data[n] = (int)(100.0f * (1.0f - trav));
+				n++;
+			}
+		}
+	}
+	else {
+		for (int i = 0; i < dim_.x; i++) {
+			for (int j = 0; j < dim_.y; j++) {
+
+				float trav = vehicle_.GetTraversability(roughness_[i][j], slope_[i][j], impermeability_[i][j], rci_[i][j]);
+				if (trav < thresh) {
+					grid.data[n] = 100;
+				}
+				else { grid.data[n] = 0; }
+				//grid.data[n] = (int)(100.0f * (1.0f - trav));
+				n++;
+			}
+		}
+	}
+	grid.info.height = dim_.y;
+	grid.info.width = dim_.x;
+	grid.info.resolution = res_;
+	grid.info.origin.position.x = llc_.x;
+	grid.info.origin.position.y = llc_.y;
+	grid.info.origin.position.z = llc_.z;
+	grid.info.origin.orientation.w = 1.0f;
+	grid.info.origin.orientation.x = 0.0f;
+	grid.info.origin.orientation.y = 0.0f;
+	grid.info.origin.orientation.z = 0.0f;
+	return grid;
 }
 
 nature::msg::OccupancyGrid VoxelGrid::GetTraversabilityAsOccupancyGrid(bool row_major) {

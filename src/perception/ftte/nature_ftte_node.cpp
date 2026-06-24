@@ -116,15 +116,17 @@ int main(int argc, char *argv[]) {
 	float map_width = 150.0f;
 	float map_length = 150.0f;
 	float map_res = 1.0f; 
+	float trav_thresh = 0.5f;
 	bool use_planes = false;
 	bool show_timing = false;
 	bool fixed_map = true;
 	n->get_parameter("~map_res", map_res, 1.0f);
 	n->get_parameter("~map_length", map_length, 150.0f);
-	n->get_parameter("~map_width", map_length, 150.0f);
+	n->get_parameter("~map_width", map_width, 150.0f);
 	n->get_parameter("~use_planes", use_planes, false);
 	n->get_parameter("~show_timing", show_timing, false);
 	n->get_parameter("~fixed_map", fixed_map, true);
+	n->get_parameter("~traversability_threshold", trav_thresh, 0.5f);
 
 	/*if (ros::param::has("~map_res")) {
     	ros::param::get("~map_res",map_res);
@@ -153,12 +155,12 @@ int main(int argc, char *argv[]) {
 
 	
 
-	n->get_parameter("~vehicle_mass", map_length, 34251.0f);
-	n->get_parameter("~vehicle_bumper_height", map_length, 34251.0f);
-	n->get_parameter("~vehicle_tire_radius", map_length, 34251.0f);
-	n->get_parameter("~vehicle_vci1", map_length, 34251.0f);
-	n->get_parameter("~vehicle_max_slope", map_length, 34251.0f);
-	n->get_parameter("~vehicle_roof_height", map_length, 34251.0f);
+	n->get_parameter("~vehicle_mass", vehicle_mass, 34251.0f);
+	n->get_parameter("~vehicle_bumper_height", vehicle_bumper_height, 0.41f);
+	n->get_parameter("~vehicle_tire_radius", vehicle_tire_radius, 0.4f);
+	n->get_parameter("~vehicle_vci1", vehicle_vci1, 25.0f);
+	n->get_parameter("~vehicle_max_slope", vehicle_max_slope, 0.55f);
+	n->get_parameter("~vehicle_roof_height", vehicle_roof_height, 3.5f);
 
 	/*
 	if (ros::param::has("~vehicle_mass")){
@@ -289,35 +291,40 @@ int main(int argc, char *argv[]) {
 	grid.UsePlaneFitting(use_planes);
 	grid.SetPrintTimingInfo(show_timing);
 
-	nature::node::Rate rate(10.0);
+	nature::node::Rate rate(100.0);
 	int frame_count = 0;
 	//double t0 = 0.0f;
 	//double elapsed_time = 0.0;
-	std::ofstream fout("pose_log.txt");
+	//std::ofstream fout("pose_log.txt");
 	// Start the ROS loop
 	//while (ros::ok() && elapsed_time<max_time){
 	while (nature::node::ok()) {
+		//std::cout << "FTTE: " << odom_rcvd << " " << points_rcvd << std::endl;
 		if (odom_rcvd && points_rcvd){
+			//std::cout << "FTTE RUNNING..." << grid.Initialized()<<" "<<fixed_map<<std::endl;
 			//if (frame_count==0){
 			//	t0 = ros::Time::now().toSec();
 			//}
 			// Initialized the traversability model the first
 			// iteration based on the vehicle position
 			if (!grid.Initialized()){
+				//std::cout << "FTTE INITIALIZING GRID" << std::endl;
 				glm::vec3 llc(current_position.x-0.5f*map_width, current_position.y-0.5*map_length, current_position.z-5.0);
 				glm::vec3 urc(current_position.x+0.5f*map_width, current_position.y+0.5f*map_length, current_position.z+10.0);
 				grid.Initialize(llc,urc,map_res);
 				grid.SetVehicle(vehicle);
 			}
-			else if (!fixed_map){
+			if (!fixed_map){
+				//std::cout << "FTTE MOVING MAP" << std::endl;
 				glm::vec3 llc(current_position.x-0.5f*map_width, current_position.y-0.5*map_length, current_position.z-5.0);
 				glm::vec3 urc(current_position.x+0.5f*map_width, current_position.y+0.5f*map_length, current_position.z+10.0);
+				//grid.Initialize(llc, urc, map_res);
 				grid.Move(llc, urc);
 			}
-			fout<<frame_count<<" "<<current_position.x<<" "<<current_position.y<<" "<<current_position.z<<std::endl;
-
+			//fout<<frame_count<<" "<<current_position.x<<" "<<current_position.y<<" "<<current_position.z<<std::endl;
+			//std::cout << "FTTE: Adding registered points " << std::endl;
 			grid.AddRegisteredPoints(current_points, current_position);
-
+			//std::cout << "FTTE: Done adding points" << std::endl;
 			// Plot results
 			std::string file_prefix = ToString(frame_count, 5);
 			
@@ -353,11 +360,12 @@ int main(int argc, char *argv[]) {
 				grid.SaveSlopePlot(file_prefix+"_slope.bmp");
 				grid.SaveTraversabilityPlot(file_prefix+"_trav.bmp");
 			}
-			nature::msg::OccupancyGrid occ_grid = grid.GetTraversabilityAsOccupancyGrid(false);
+			//std::cout << "FTTE: publishing grids" << std::endl;
+			nature::msg::OccupancyGrid occ_grid = grid.GetTraversabilityAsOccupancyGridThreshold(false, trav_thresh);
 			occ_grid.header = current_pose.header;
 			grid_pub->publish(occ_grid);
 
-			nature::msg::OccupancyGrid occ_grid_vis = grid.GetTraversabilityAsOccupancyGrid(true);
+			nature::msg::OccupancyGrid occ_grid_vis = grid.GetTraversabilityAsOccupancyGridThreshold(true, trav_thresh);
 			occ_grid_vis.header = current_pose.header;
 			grid_pub_vis->publish(occ_grid_vis);
 
@@ -368,6 +376,6 @@ int main(int argc, char *argv[]) {
 		n->spin_some();
 		rate.sleep();
 	}
-	fout.close();
+	//fout.close();
 	return 0;
 }

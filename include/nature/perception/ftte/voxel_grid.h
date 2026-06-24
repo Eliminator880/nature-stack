@@ -57,6 +57,8 @@ public:
 	void SaveSlicePlot(std::string fname);
 
 	nature::msg::OccupancyGrid GetTraversabilityAsOccupancyGrid(bool row_major);
+
+	nature::msg::OccupancyGrid GetTraversabilityAsOccupancyGridThreshold(bool row_major, float thresh);
 	
 	void WriteStats(std::string fname);
 
