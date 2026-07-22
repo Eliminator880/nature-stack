@@ -5,6 +5,10 @@
 */*.vscode
 */*/*.vs
 */*/*.vscode
+**/build/
+**/install/
+**/log/
+**/__pycache__/
 
 cmake-build-debug
 .idea
