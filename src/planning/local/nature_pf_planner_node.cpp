@@ -84,7 +84,8 @@ int main(int argc, char *argv[]){
   nature::node::Rate rosrate(rate);
   while (nature::node::ok()){
     double start_secs = n->get_now_seconds();
-    if (global_path.poses.size() > 0 && odom_rcvd && grid.data.size() > 0){
+    bool goal_path_ready = use_global_path ? (global_path.poses.size() > 0) : (waypoints.poses.size() > 0);
+    if (goal_path_ready && odom_rcvd && grid.data.size() > 0){
 
       float gx, gy;
       if (use_global_path){
@@ -120,8 +121,8 @@ int main(int argc, char *argv[]){
       odom_rcvd = false;
     }
     else {
-      if (global_path.poses.size() <= 0){
-        //std::cout << "Local planner did not run because global path not recieved " << std::endl;
+      if (!goal_path_ready){
+        //std::cout << "Local planner did not run because goal path not recieved " << std::endl;
       }
       else if (!odom_rcvd){
         //std::cout << "Local planner did not run because vehicle odometry not recieved." << std::endl;

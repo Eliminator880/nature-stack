@@ -79,6 +79,7 @@ float PfPlanner::CalcAttractivePotential(float x, float y, float gx, float gy){
 		float d = Hypot(x - old_rx_[i], y - old_ry_[i]);
 		attract += sg * d;
 	}
+	return attract;
 }
 
 float PfPlanner::CalcRepulsivePotential(float x, float y, std::vector<float> ox, std::vector<float> oy){
