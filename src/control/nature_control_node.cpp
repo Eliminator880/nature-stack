@@ -280,8 +280,14 @@ int main(int argc, char *argv[]){
     }
     else{
         // make sure you don't apply throttle and brake at the same time.
-      dc.linear.x = std::max(std::min(dc.linear.x, 1.0),0.0);
+      dc.linear.x = std::max(std::min(dc.linear.x, (double)vehicle_speed), 0.0);
       if (dc.linear.x>0.0f)dc.linear.y = 0.0f;
+      
+      // Apply rate limiting to lateral velocity to prevent sudden jumps
+      float max_lateral_step = max_throttle_step; // Use same rate as throttle
+      if (fabs(dc.linear.y - current_brake_value) > max_lateral_step){
+        dc.linear.y = current_brake_value + max_lateral_step * (dc.linear.y > current_brake_value ? 1.0f : -1.0f);
+      }
     }
 
     // publish the driving command

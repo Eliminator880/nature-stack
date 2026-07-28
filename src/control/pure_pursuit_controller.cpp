@@ -153,8 +153,9 @@ nature::msg::Twist PurePursuitController::GetDcSkid(float dx, float dy, float dt
 	float v = vr*cosf(dtheta) + kx_*xe;
 	float w = current_angular_velocity_ + vr*(ky_*ye + k_theta_*sinf(dtheta));
 
-	dc.linear.x = v*ct;
-	dc.linear.y = v*st;
+	// Output in vehicle frame (not world frame) so lateral commands only come from lateral error
+	dc.linear.x = v;
+	dc.linear.y = 0.0f;  // Lateral velocity is handled by angular correction
 	dc.angular.z = w;
 
 	return dc;
