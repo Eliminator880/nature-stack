@@ -220,7 +220,7 @@ int main(int argc, char *argv[]) {
 		double elapsed_time = (n->get_now_seconds()-start_time);
 		if (grid_created && elapsed_time > warmup_time) {
 			nature::msg::OccupancyGrid grd;
-      		grd = grid.GetGrid(true);
+      		grd = grid.GetGrid();
 			grd.header.stamp = n->get_stamp();
 			grid_pub->publish(grd);
 
